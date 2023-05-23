@@ -1,0 +1,7 @@
+Dockerfile
+.coverage
+
+*.in
+*.yaml
+Makefile
+.venv/

@@ -1,0 +1,9 @@
+apiVersion: koutsikos.dev/v1
+kind: DynamicJobScheduler
+metadata:
+  name: test-scheduler
+spec:
+  api_endpoint: http://universities.hipolabs.com/search?country=Greece
+  job_namespace: "default"
+  image_name: djs-demo
+  image_tag: "2.0"

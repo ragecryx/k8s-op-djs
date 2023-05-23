@@ -1,0 +1,35 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: dynamicjobschedulers.koutsikos.dev
+spec:
+  group: koutsikos.dev
+  scope: Namespaced
+  names:
+    kind: DynamicJobScheduler
+    plural: dynamicjobschedulers
+    singular: dynamicjobscheduler
+    shortNames:
+      - djs
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                api_endpoint:
+                  type: string
+                poll_interval:
+                  type: integer
+                  default: 10
+                job_namespace:
+                  type: string
+                image_name:
+                  type: string
+                image_tag:
+                  type: string
