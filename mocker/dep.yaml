@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: djs-mocker
+  labels:
+    app: djs-mocker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: djs-mocker
+  template:
+    metadata:
+      labels:
+        app: djs-mocker
+    spec:
+      containers:
+        - name: djs-mocker
+          image: djs-mocker:1.0
+          ports:
+            - containerPort: 9000
