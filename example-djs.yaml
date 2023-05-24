@@ -1,0 +1,32 @@
+apiVersion: koutsikos.dev/v1
+kind: DynamicJobScheduler
+metadata:
+  name: test-scheduler
+spec:
+  api_endpoint: http://djs-mocker-service.default.svc.cluster.local
+  job_namespace: "default"
+  image_name: djs-demo
+  image_tag: "1.0"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: djs-operator
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      application: djs-operator
+  template:
+    metadata:
+      labels:
+        application: djs-operator
+    spec:
+      serviceAccountName: djs-account
+      containers:
+      - name: djs-operator
+        image: djs-demo:1.0
+        command: [ "python3" ]
+        args: [ "-m", "kopf", "run", "./djs/operator.py" ]

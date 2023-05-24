@@ -1,5 +1,5 @@
 
-NODES_NUM ?= 2
+NODES_NUM ?= 3
 K8S_VERSION ?= 1.23.17
 MINIKUBE_DRIVER ?= docker
 

@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, UTC, timedelta as td
 from hashlib import md5
 
@@ -7,7 +8,11 @@ import time
 
 from kubernetes import client, config
 
-config.load_kube_config()
+if "KUBERNETES_SERVICE_HOST" in os.environ:
+    config.load_incluster_config()
+else:
+    config.load_kube_config()
+
 k8s_core = client.CoreV1Api()
 k8s_batch = client.BatchV1Api()
 
@@ -29,12 +34,17 @@ def process_daemon(spec, stopped, **kwargs):
     while not stopped:
         response = requests.get(api_endpoint)
         data = response.json()
+        now_ts = int(tz_aware_utc_now().timestamp())
 
         for entry in data:
-            id: str = entry.get('name')
-            job_name = f"djs-job-{md5hex(id)}"
-            print(f"Launching job for '{id}' with name: {job_name}")
-            ttl = int(td(hours=24).total_seconds())
+            job_name = f"djs-job-{entry['name']}-{entry['id']}"
+
+            if entry["start_time"] <= now_ts:
+                print(f"Cant start job: {job_name} it's in the past!")
+                continue
+
+            print(f"Launching job: {job_name}")
+            ttl = int(td(minutes=5).total_seconds())
 
             job = client.V1Job()
             job.api_version = 'batch/v1'
@@ -45,9 +55,10 @@ def process_daemon(spec, stopped, **kwargs):
                     spec=client.V1PodSpec(
                         containers=[client.V1Container(
                             name='job-container',
+                            image_pull_policy='Always',
                             image=f"{image_name}:{image_tag}",
                         )],
-                        restart_policy='Never'
+                        restart_policy='Never',
                     )
                 ),
                 ttl_seconds_after_finished=ttl
