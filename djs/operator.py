@@ -55,7 +55,7 @@ def process_daemon(spec, stopped, **kwargs):
                     spec=client.V1PodSpec(
                         containers=[client.V1Container(
                             name='job-container',
-                            image_pull_policy='Always',
+                            # image_pull_policy='Always',
                             image=f"{image_name}:{image_tag}",
                         )],
                         restart_policy='Never',

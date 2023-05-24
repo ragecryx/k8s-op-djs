@@ -19,10 +19,8 @@ service-on-minikube:
 	pip install -r requirements.txt
 	docker build -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) -f Dockerfile .
 	minikube image load $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)
-	kubectl create -f ./dep.yaml
 	kubectl create -f ./svc.yaml
 
 .PHONY: remove-service
 remove-service:
 	kubectl delete -f ./svc.yaml
-	kubectl delete -f ./dep.yaml

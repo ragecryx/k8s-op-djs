@@ -14,4 +14,3 @@ ENV PYTHONPATH="$PYTHONPATH:/app"
 COPY . /app
 
 CMD ["python3", "web.py"]
-EXPOSE 9000
