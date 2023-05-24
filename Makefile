@@ -19,6 +19,11 @@ minikube-stop:
 docker-image:
 	docker build -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) -f Dockerfile .
 
+.PHONY: update-image
+update-image:
+	docker build -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) -f Dockerfile .
+	minikube image load $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)
+
 requirements.txt: requirements.in
 	pip-compile --generate-hashes --resolver=backtracking requirements.in
 

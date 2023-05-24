@@ -24,12 +24,7 @@ spec:
               properties:
                 api_endpoint:
                   type: string
-                poll_interval:
-                  type: integer
-                  default: 10
                 job_namespace:
                   type: string
-                image_name:
-                  type: string
-                image_tag:
+                job_image:
                   type: string
