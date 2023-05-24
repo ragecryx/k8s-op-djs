@@ -16,8 +16,6 @@ else:
 k8s_core = client.CoreV1Api()
 k8s_batch = client.BatchV1Api()
 
-md5hex = lambda x: md5(x.encode('utf-8')).hexdigest()
-
 
 def tz_aware_utc_now() -> datetime:
     return datetime.now(UTC).replace(microsecond=0)
@@ -34,13 +32,23 @@ def process_daemon(spec, stopped, **kwargs):
     while not stopped:
         response = requests.get(api_endpoint)
         data = response.json()
-        now_ts = int(tz_aware_utc_now().timestamp())
+        now = tz_aware_utc_now()
+        now_ts = int(now.timestamp())
+        max_ts = int((now + td(minutes=30)).timestamp())
 
         for entry in data:
             job_name = f"djs-job-{entry['name']}-{entry['id']}"
 
-            if entry["start_time"] <= now_ts:
-                print(f"Cant start job: {job_name} it's in the past!")
+            if not (now_ts < entry["start_time"] <= max_ts):
+                continue
+
+            # If the job is already running don't try to add again
+            jobs_result = k8s_batch.list_namespaced_job(job_namespace)
+            matching_jobs = [
+                job for job in jobs_result.items
+                if job.metadata.name == job_name
+            ]
+            if matching_jobs:
                 continue
 
             print(f"Launching job: {job_name}")
@@ -52,6 +60,12 @@ def process_daemon(spec, stopped, **kwargs):
             job.metadata = client.V1ObjectMeta(name=job_name)
             job.spec = client.V1JobSpec(
                 template=client.V1PodTemplateSpec(
+                    metadata=client.V1ObjectMeta(
+                        labels={
+                            "app": "djs-job",
+                            "person": entry['name']
+                        }
+                    ),
                     spec=client.V1PodSpec(
                         containers=[client.V1Container(
                             name='job-container',

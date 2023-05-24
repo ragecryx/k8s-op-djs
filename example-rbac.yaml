@@ -33,7 +33,7 @@ rules:
     verbs: [list, watch, patch]
   - apiGroups: [batch, extensions]
     resources: [jobs]
-    verbs: [create]
+    verbs: [create, list]
   - apiGroups: [""]
     resources: [pods]
     verbs: [create]
