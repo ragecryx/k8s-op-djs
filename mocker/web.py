@@ -49,7 +49,7 @@ async def root(req):
         },
         {
             "id": "d2bec66e-ce1f-4029-9ff1-b7078b38121c",
-            "start_time": get_start_plus_minutes_ts(67),
+            "start_time": get_start_plus_minutes_ts(35),
             "name": "james"
         },
         {
