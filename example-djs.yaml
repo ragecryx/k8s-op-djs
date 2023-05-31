@@ -24,8 +24,9 @@ spec:
         application: djs-operator
     spec:
       serviceAccountName: djs-account
+      terminationGracePeriodSeconds: 70  # 10sec more than polling interval
       containers:
-      - name: djs-operator
+      - name: djs-operator-container
         image: djs-demo:1.0
         command: [ "python3" ]
         args: [ "-m", "kopf", "run", "./djs/operator.py" ]

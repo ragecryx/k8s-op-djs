@@ -11,6 +11,8 @@ env.read_env()
 JOB_DISPATCH_TIMEFRAME_MIN = env.int("JOB_DISPATCH_TIMEFRAME_MIN", 30)
 TIMER_IDLING_SEC = env.int("TIMER_IDLING_SEC", 15)
 TIMER_INTERVAL_SEC = env.int("TIMER_INTERVAL_SEC", 60)
+JOB_DISPATCH_ACTIVE = True
+JOBS_ALREADY_DISPATCHED = set()
 
 if "KUBERNETES_SERVICE_HOST" in os.environ:
     config.load_incluster_config()
@@ -23,6 +25,26 @@ k8s_batch = client.BatchV1Api()
 
 def tz_aware_utc_now() -> datetime:
     return datetime.now(UTC).replace(microsecond=0)
+
+
+def add_running_to_already_dispatched(namespace: str):
+    jobs_result = k8s_batch.list_namespaced_job(namespace)
+    for job in jobs_result.items:
+        JOBS_ALREADY_DISPATCHED.add(job.metadata.name)
+
+
+@kopf.on.resume('koutsikos.dev', 'v1', 'dynamicjobschedulers',)
+@kopf.on.create('koutsikos.dev', 'v1', 'dynamicjobschedulers',)
+def on_init(spec, **_):
+    job_namespace = spec.get('job_namespace')
+    add_running_to_already_dispatched(job_namespace)
+
+
+@kopf.on.cleanup()
+async def on_cleanup(logger, **kwargs):
+    # Called on termination
+    global JOB_DISPATCH_ACTIVE
+    JOB_DISPATCH_ACTIVE = False
 
 
 @kopf.timer(
@@ -48,12 +70,7 @@ def scheduler_tick(spec, **kwargs):
             continue
 
         # If the job is already running don't try to add again
-        jobs_result = k8s_batch.list_namespaced_job(job_namespace)
-        matching_jobs = [
-            job for job in jobs_result.items
-            if job.metadata.name == job_name
-        ]
-        if matching_jobs:
+        if job_name in JOBS_ALREADY_DISPATCHED:
             continue
 
         print(f"Launching job: {job_name} with image {job_image}")
@@ -91,7 +108,10 @@ def scheduler_tick(spec, **kwargs):
             ttl_seconds_after_finished=ttl
         )
 
-        k8s_batch.create_namespaced_job(
-            job_namespace,
-            job
-        )
+        global JOB_DISPATCH_ACTIVE
+        if JOB_DISPATCH_ACTIVE:
+            k8s_batch.create_namespaced_job(
+                job_namespace,
+                job
+            )
+            JOBS_ALREADY_DISPATCHED.add(job_name)
