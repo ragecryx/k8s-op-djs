@@ -5,14 +5,22 @@ from environs import Env
 import kopf
 from kubernetes import client, config
 
+from djs.log_utils import setup_logging
+
 env = Env()
 env.read_env()
 
-JOB_DISPATCH_TIMEFRAME_MIN = env.int("JOB_DISPATCH_TIMEFRAME_MIN", 30)
+JOB_DISPATCH_TIMEFRAME_MINUTES = env.int("JOB_DISPATCH_TIMEFRAME_MINUTES", 15)
 TIMER_IDLING_SEC = env.int("TIMER_IDLING_SEC", 15)
 TIMER_INTERVAL_SEC = env.int("TIMER_INTERVAL_SEC", 60)
 JOB_DISPATCH_ACTIVE = True
 JOBS_ALREADY_DISPATCHED = set()
+
+
+@kopf.on.startup()
+def configure(settings: kopf.OperatorSettings, **_):
+    setup_logging()
+
 
 if "KUBERNETES_SERVICE_HOST" in os.environ:
     config.load_incluster_config()
@@ -61,12 +69,13 @@ def scheduler_tick(spec, **kwargs):
 
     now = tz_aware_utc_now()
     now_ts = int(now.timestamp())
-    max_ts = int((now + td(minutes=JOB_DISPATCH_TIMEFRAME_MIN)).timestamp())
+    dispatch_ts = int((now + td(minutes=JOB_DISPATCH_TIMEFRAME_MINUTES)).timestamp())
 
     for entry in data:
         job_name = f"djs-job-{entry['name']}-{entry['id']}"
 
-        if not (now_ts < entry["start_time"] <= max_ts):
+        ts_diff = entry["start_time"] - now_ts
+        if ts_diff > dispatch_ts:  # not yet...
             continue
 
         # If the job is already running don't try to add again

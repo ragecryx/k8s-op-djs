@@ -2,3 +2,5 @@ kubernetes
 kopf
 requests
 environs
+structlog
+orjson
